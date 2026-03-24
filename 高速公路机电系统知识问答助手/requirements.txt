@@ -1,0 +1,10 @@
+# 高速公路机电系统知识问答助手 — Python 依赖（建议在虚拟环境中安装）
+gradio>=4.0
+langchain>=1.0
+langchain-core
+langchain-community
+langchain-text-splitters
+langchain-deepseek
+langchain-ollama
+langchain-huggingface
+sentence-transformers
