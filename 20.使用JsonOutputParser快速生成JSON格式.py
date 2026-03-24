@@ -42,5 +42,6 @@ prompt = PromptTemplate(
 )
 
 chain = prompt | llm | json_parser
-output = chain.invoke({"query": "给我讲一个笑话"})
-print(output)
+for i in chain.stream({"query": "给我讲一个笑话"}):
+    print(i)
+
