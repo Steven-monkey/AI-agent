@@ -1,0 +1,97 @@
+"""
+
+
+
+本文件演示：LangChain 中「运行时可配置字段」——以聊天模型的 temperature 为例。
+
+
+
+ChatDeepSeek(...) 先固定一套默认参数，再调用 .configurable_fields(...)，
+
+把某个属性（此处为 temperature）声明为可在 invoke 时通过 config 覆盖。
+
+
+
+ConfigurableField：描述该可配置项的 id（与 config["configurable"] 的键对应）、
+
+展示用 name、说明 description；不包含 temperature 数值本身——默认值来自
+
+构造函数里的 temperature=0。
+
+
+
+"""
+
+# ---------------------------------------------------------------------------
+
+# import（导入）：从标准库或第三方包引入符号。
+
+# ---------------------------------------------------------------------------
+
+import os
+
+
+# os.getenv：读取环境变量，用于 API Key 等敏感配置。
+
+
+from langchain_deepseek import ChatDeepSeek
+
+
+# ChatDeepSeek：DeepSeek 聊天模型封装；实例支持 configurable_fields。
+
+
+from langchain_core.runnables import ConfigurableField
+
+
+# ConfigurableField：NamedTuple，字段含 id、name、description 等；用于标注「哪一项可运行时改写」。
+
+# 不要向 ConfigurableField 传入 temperature= 这类模型构造参数，否则会报 unexpected keyword argument。
+
+
+# ---------------------------------------------------------------------------
+
+# 大模型 + 可配置 temperature：默认温度 0；invoke 时可传 config 覆盖。
+
+# ---------------------------------------------------------------------------
+
+llm = ChatDeepSeek(
+    # model：远端 API 使用的模型标识字符串。
+    model="deepseek-chat",
+    # temperature：默认采样温度；可被下方 configurable 覆盖。
+    temperature=0,
+    api_key=os.getenv("DEEPSEEK_API_KEY"),
+    base_url="https://api.deepseek.com/v1",
+).configurable_fields(
+    # configurable_fields(**kwargs)：关键字名必须是 Runnable 上存在的属性名，此处为 temperature。
+    temperature=ConfigurableField(
+        # id：与 invoke(..., config={"configurable": {键: 值}}) 里的键一致。
+        id="temperature",
+        # name / description：给人看的标签与说明，便于工具链或调试展示。
+        name="采样温度",
+        description="采样温度：0~1，越大越随机",
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+
+# invoke：同步调用；返回 ChatMessage 等对象，常用 .content 取助手文本。
+
+#
+
+# config["configurable"]：运行时注入可配置字段；此处覆盖 temperature 为 0.9，与默认 0 对比输出随机性。
+
+# ---------------------------------------------------------------------------
+
+print(llm.invoke("给我随机生成一个随机数，输出为一个整数").content)
+
+
+print("--------------------------------")
+
+
+print(
+    llm.invoke(
+        "给我随机生成一个随机数，输出为一个整数",
+        config={"configurable": {"temperature": 0.9}},
+    ).content
+)
