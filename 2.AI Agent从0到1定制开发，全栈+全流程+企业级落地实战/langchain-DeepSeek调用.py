@@ -1,13 +1,25 @@
 """
-DeepSeek 调用示例：使用 LangChain 调用 DeepSeek 
+
+
+
+本文件演示：通过 langchain_llm.py 里的 create_deepseek_llm 获取 ChatDeepSeek。
+
+用法说明见同目录 langchain_llm.py 文件开头注释。
+
+
+
 """
-import os
-from langchain_deepseek import ChatDeepSeek
 
+# ---------------------------------------------------------------------------
 
-llm = ChatDeepSeek(
-    model="deepseek-chat",  # 模型名称
-    temperature=0.8,  # 采样温度：0~1，越大越随机
-    api_key=os.getenv("DEEPSEEK_API_KEY"),  # 从环境变量读取 API Key
-    base_url="https://api.deepseek.com/v1",  # DeepSeek OpenAI 兼容接口
-)
+from langchain_llm import create_deepseek_llm
+
+# ---------------------------------------------------------------------------
+
+llm = create_deepseek_llm()
+
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    reply = llm.invoke("用一句话介绍 DeepSeek 能帮你做什么。")
+    print(reply.content)
