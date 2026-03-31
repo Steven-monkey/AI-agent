@@ -1,85 +1,45 @@
+# 导入 os，用于读取系统环境变量（例如 CHROMA_HOST、CHROMA_PORT）。
+import os
+# 导入 chromadb 客户端库，用来和远程 Chroma 服务通信。
 import chromadb
 
-# =========================
-# 1) 连接远程 Chroma 服务
-# =========================
-# 使用 HttpClient 连接部署在服务器上的 Chroma（而不是本地进程）。
-# 这里要保证：
-# - 服务器已经启动 chroma 服务；
-# - 安全组/防火墙放行了对应端口；
-# - 本机网络可以访问该 IP:PORT。
-client = chromadb.HttpClient(
-    host="120.78.121.40",  # 服务器公网 IP（请替换成你自己的）
-    port=8000              # Chroma 对外监听端口（请和服务器端保持一致）
-)
+# 从环境变量读取 Chroma 服务器地址（例如公网 IP）。
+# 如果你已在系统中设置 CHROMA_HOST，这里会自动读取到。
+CHROMA_HOST = os.getenv("CHROMA_HOST")
+# 从环境变量读取 Chroma 端口，并转为整数类型。
+# Chroma 常见端口是 8000，所以环境变量通常设置为 8000。
+CHROMA_PORT = int(os.getenv("CHROMA_PORT"))
 
-# =========================
-# 2) 基础连通性测试
-# =========================
-# heartbeat()：心跳检测，能返回结果说明网络和服务基本正常。
-# get_version()：查看服务端版本，确认客户端与服务端兼容性。
-print("✅ 连接成功！服务端心跳：", client.heartbeat())
-print("✅ Chroma 版本：", client.get_version())
+# 用 try 包裹主流程，目的是连接失败时不让程序直接崩溃，而是输出可读提示。
+try:
+    # 创建 Chroma 的 HTTP 客户端对象。
+    # 这一步会准备好后续所有 API 请求使用的连接参数（host、port）。
+    client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
 
-# =========================
-# 3) 创建或获取集合（Collection）
-# =========================
-# Collection 可以理解为“一个向量数据表/库”。
-# get_or_create_collection 的含义：
-# - 存在同名集合：直接返回；
-# - 不存在：自动创建。
-collection = client.get_or_create_collection(name="my_collection")
+    # 调用 heartbeat() 做最基础的“服务活性”检查。
+    # 如果服务在线，通常会返回一个值（如时间戳或状态信息）。
+    heartbeat = client.heartbeat()
+    # 打印连接成功提示，并把当前连接的目标地址显示出来，方便你核对。
+    print(f"✅ Chroma 连通成功！地址: {CHROMA_HOST}:{CHROMA_PORT}")
+    # 打印心跳返回值，证明不是“假连接”。
+    print("✅ Chroma 心跳:", heartbeat)
 
-# =========================
-# 4) 向集合里添加数据
-# =========================
-# add() 最常见参数：
-# - documents：原始文本列表（可被用来自动生成向量，取决于服务端配置）
-# - ids：每条文本的唯一 ID，不能重复
-# 注意：
-# - documents 和 ids 数量必须一致；
-# - 如果重复写入同一个 id，通常会报错或冲突；
-# - 生产环境建议同时保存 metadata（如来源、时间、类别等）。
-collection.add(
-    documents=["我喜欢吃苹果", "我喜欢吃香蕉", "我喜欢吃橙子"],
-    ids=["id1", "id2", "id3"]
-)
-
-# =========================
-# 5) 相似度检索（向量搜索）
-# =========================
-# query_texts：查询语句列表（这里演示 1 条）
-# n_results：每条查询返回前 k 条最相似结果
-# 返回结果 result 通常是一个字典，常见键有：
-# - ids：命中的文档 ID
-# - documents：命中的文档内容
-# - distances：与查询的距离（越小通常越相似，取决于距离度量方式）
-# - metadatas：命中的元数据（如果你有写入）
-result = collection.query(
-    query_texts=["我喜欢水果"],
-    n_results=2
-)
-
-# =========================
-# 6) 输出检索结果
-# =========================
-# 这里直接打印完整结果，便于快速检查是否“连通 + 可检索”。
-# 后续可按需只打印 result["documents"] 或 result["ids"] 做业务展示。
-print("\n🔍 搜索结果：")
-print(result)
-
-
-# ========================= 常见问题排查 =========================
-# 1) 连接超时 / Connection refused：
-#    - 检查服务器上 Chroma 是否启动；
-#    - 检查端口是否放行（云厂商安全组 + 系统防火墙）；
-#    - 检查 host/port 是否写对。
-#
-# 2) add 时报 ID 冲突：
-#    - ids 必须唯一；可改成新 ID，或先删除旧数据再写入。
-#
-# 3) 检索结果为空：
-#    - 先确认 add 是否成功；
-#    - 确认查询语句和文档语义是否相关；
-#    - 确认服务端 embedding 配置是否正常。
-# =============================================================
+    # 调用 list_collections() 进一步验证读接口可用。
+    # 这比 heartbeat 更进一步，证明数据库 API 能正常工作。
+    collections = client.list_collections()
+    # 打印当前集合列表，帮助你确认服务里是否已有业务集合。
+    print("✅ 集合接口可用，当前集合列表:", collections)
+# 如果 try 里任何一步报错（网络不通、端口错、服务没启动等），会进入 except。
+except Exception as e:
+    # 打印连接失败提示和目标地址，先定位是不是连错地址。
+    print(f"❌ Chroma 连通失败！地址: {CHROMA_HOST}:{CHROMA_PORT}")
+    # 打印原始异常，便于你看到具体错误（超时、拒绝连接、502 等）。
+    print("❌ 错误信息:", e)
+    # 打印固定排查清单，按顺序执行即可快速定位问题。
+    print("排查建议：")
+    # 第 1 步：检查服务器端 Chroma 服务是否处于运行状态。
+    print("1) 确认服务器 Chroma 服务是否运行：systemctl status chroma --no-pager")
+    # 第 2 步：检查服务器 8000 端口是否真的在监听。
+    print("2) 确认服务器 8000 端口是否监听：ss -lntp | grep 8000")
+    # 第 3 步：检查云安全组或系统防火墙有没有放行 8000。
+    print("3) 确认云安全组/防火墙已放行 8000 端口")
