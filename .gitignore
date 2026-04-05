@@ -2,3 +2,77 @@
 .venv/
 本地演示代码/
 向量数据库运维清单.md
+.vs
+# ====================== 系统/IDE无关文件 ======================
+# Windows系统文件
+Thumbs.db
+.DS_Store
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDE配置文件
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.log
+.pytest_cache/
+.coverage
+
+# ====================== 核心敏感文件（绝对禁止提交） ======================
+# 所有子目录下的密钥/API配置/数据库连接文件
+**/.env
+**/.env.*
+**/config.ini
+**/config.json
+**/secrets.yaml
+**/secrets.yml
+**/credentials
+**/*.key
+**/*.pem
+**/*.p12
+**/id_rsa*
+**/*.ppk
+
+# 本地数据库文件
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# ====================== Python项目冗余文件 ======================
+# 所有子目录下的编译缓存文件
+**/__pycache__/
+*.pyc
+*.py[cod]
+*$py.class
+
+# 虚拟环境（体积大，无需提交）
+venv/
+env/
+.venv/
+virtualenv/
+
+# ====================== AI项目大文件/数据集 ======================
+**/data/
+**/dataset/
+**/models/
+**/checkpoints/
+**/*.bin
+**/*.pth
+**/*.h5
+**/*.ckpt
+
+# ====================== 日志/临时文件 ======================
+**/logs/
+**/tmp/
+**/temp/
+**/downloads/
+**/*.zip
+**/*.rar
+**/*.7z
+
+# ====================== 杜绝嵌套Git仓库 ======================
+**/.git/
